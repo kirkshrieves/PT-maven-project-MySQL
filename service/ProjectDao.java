@@ -62,7 +62,7 @@ public class ProjectDao extends DaoBase {
 	}
 
 	public List<Projects> fetchAllProjects() {
-		String sql = "SELECT * FROM " + PROJECTS_TABLE + " ORDER BY projects_name";
+		String sql = "SELECT * FROM " + PROJECTS_TABLE + " ORDER BY projects_id";
 		try(Connection conn = DbConnection.getConnection()){
 		   startTransaction(conn);
 		   try(PreparedStatement stmt = conn.prepareStatement(sql)){
@@ -70,16 +70,6 @@ public class ProjectDao extends DaoBase {
 				  List<Projects> project = new LinkedList<>();
 				  while(rs.next()) {
 					  project.add(extract(rs, Projects.class));
-//					  Projects projects = new Projects();
-//					  
-//					  ((Projects) project).setActualHours(rs.getBigDecimal("actual_hours"));
-//					  ((Projects) project).setDifficulty(rs.getObject("difficulty", Integer.class));
-//					  ((Projects) project).setEstimatedHours(rs.getBigDecimal("estimated_hours"));
-//					  ((Projects) project).setNotes(rs.getString("notes"));
-//					  ((Projects) project).setProjectId(rs.getObject("projects_id", Integer.class));
-//					  ((Projects) project).setProjectName(rs.getString("projects_name"));
-//					  
-//					  projects.add(project);
 				  }
 				  return project;
 			  }
@@ -181,8 +171,63 @@ public class ProjectDao extends DaoBase {
 	}
 
 	public boolean modifyProjectDetails(Projects project) {
-		// TODO Auto-generated method stub
-		return false;
+		// @formatter:off
+		String sql = ""
+				+ "UPDATE " + PROJECTS_TABLE + " SET "
+				+ "projects_name = ?, "
+				+ "estimated_hours = ?, "
+				+ "actual_hours = ?, "
+				+ "difficulty = ?, "
+				+ "notes = ? "
+				+ "WHERE projects_id = ?";
+		// @formatter:off
+		
+		try(Connection conn = DbConnection.getConnection()) {
+			startTransaction(conn);
+			try(PreparedStatement stmt = conn.prepareStatement(sql)){
+				setParameter(stmt, 1, project.getProjectName(), String.class);
+				setParameter(stmt, 2, project.getEstimatedHours(), BigDecimal.class);
+				setParameter(stmt, 3, project.getActualHours(), BigDecimal.class);
+				setParameter(stmt, 4, project.getDifficulty(), Integer.class);
+				setParameter(stmt, 5, project.getNotes(), String.class);
+				setParameter(stmt, 6, project.getProjectId(), Integer.class);
+				
+				boolean modified = stmt.executeUpdate() == 1;
+				commitTransaction(conn);
+				
+				return modified;
+			}
+			catch(Exception e) {
+				rollbackTransaction(conn);
+				throw new DbException(e);
+			}
+		}
+		catch(SQLException e) {
+			throw new DbException(e);
+		}
+	}
+
+	public boolean deleteProject(Integer projectsId) {
+		String sql = "DELETE FROM " + PROJECTS_TABLE + " WHERE projects_id = ?";
+		
+		try(Connection conn = DbConnection.getConnection()){
+			startTransaction(conn);
+			try(PreparedStatement stmt = conn.prepareStatement(sql)){
+				setParameter(stmt, 1, projectsId, Integer.class);
+				
+				boolean deleted = stmt.executeUpdate() == 1;
+				
+				commitTransaction(conn);
+				return deleted;
+			}
+			catch(Exception e) {
+				rollbackTransaction(conn);
+				throw new DbException(e);
+			}
+		}
+		catch(SQLException e) {
+			throw new DbException(e);
+		}
 	}
 
 	
